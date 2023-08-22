@@ -20,6 +20,12 @@ figma.ui.onmessage = (msg) => {
       type: 'create-rectangles',
       message: `Created ${msg.count} Rectangles`,
     });
+    console.log('dasdsa')
+    // This is how figma responds back to the ui
+    figma.ui.postMessage({
+      type: 'figmaInit',
+      message: figma,
+    });
   }
 
   figma.closePlugin();
