@@ -1,84 +1,58 @@
-import React, {useState} from 'react';
+import React, { useEffect, useState } from 'react';
+import { getReadWriteKey, getUserDetails } from '../services/auth';
+import { REDIRECT_URL } from '../constants/global';
+import { EVENT_TYPE } from '../constants/event';
+
 import '../styles/ui.css';
 
 function App() {
-  const [Figma, setFigma] = useState()
-  // const textbox = React.useRef<HTMLInputElement>(undefined);
+  const [userDetails, setUserDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // const countRef = React.useCallback((element: HTMLInputElement) => {
-  //   if (element) element.value = '5';
-  //   textbox.current = element;
-  // }, []);
-  //
-  // const onCreate = () => {
-  //   const count = parseInt(textbox.current.value, 10);
-  //   parent.postMessage({ pluginMessage: { type: 'create-rectangles', count } }, '*');
-  // };
-  //
-  // const onCancel = () => {
-  //   parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
-  // };
-
-  React.useEffect(() => {
-    // This is how we read messages sent from the plugin controller
+  useEffect(() => {
+    parent.postMessage({ pluginMessage: { type: EVENT_TYPE.GET_USER_FROM_LOCAL_STORAGE } }, '*');
     window.onmessage = (event) => {
-      const { type, message } = event.data.pluginMessage;
-      if (type === 'create-rectangles') {
-        console.log(`Figma Says: ${message}`);
+      const { type, data } = event.data.pluginMessage;
+      if (type === EVENT_TYPE.GET_USER_FROM_LOCAL_STORAGE) {
+        setUserDetails(data);
       }
-      if (type === 'figmaInit') {
-        console.log(message);
-        setFigma(message)
-      }
-
     };
   }, []);
 
-  React.useEffect(() => {
-    if (Figma) {
-      console.log('Client storage', Figma)
-    }
-  }, [Figma]);
-  const goToLogin = () => {
-    window.open('http://localhost:3001/', '_blank')
+  const saveDataInLocalStorage = (userDetails) => {
+    parent.postMessage({ pluginMessage: { type: EVENT_TYPE.SET_USER_IN_LOCAL_STORAGE, userDetails } }, '*');
+  };
+
+  const goToLogin = async () => {
+    setIsLoading(true);
+    const readWriteKeys = await getReadWriteKey();
+    const intervalId = setInterval(async () => {
+      try {
+        const userDetailsResponse = await getUserDetails(readWriteKeys.read_key);
+        if (userDetailsResponse) {
+          setUserDetails(userDetailsResponse);
+          saveDataInLocalStorage(userDetailsResponse);
+          setIsLoading(false);
+          clearInterval(intervalId);
+        }
+      } catch (e) {}
+    }, 5000);
+    window.open(`${REDIRECT_URL}?writeKey=${readWriteKeys.write_key}`, '_blank');
+  };
+
+  if (userDetails) {
+    return (
+      <>
+        <h1>User logged in</h1>
+        <p>Welcome to designPro {userDetails.user.full_name}</p>
+      </>
+    );
   }
 
   return (
     <div>
-    {/*<GoogleLogin*/}
-    {/*    hosted_domain="*"*/}
-    {/*    onSuccess={credentialResponse => {*/}
-    {/*        console.log(credentialResponse);*/}
-    {/*    }}*/}
-    {/*    onError={() => {*/}
-    {/*        console.log('Login Failed');*/}
-    {/*    }}*/}
-    {/*/>*/}
-    {/*  <button*/}
-    {/*      onClick={googleLogin}*/}
-    {/*  >*/}
-    {/*    Login With browser*/}
-    {/*  </button>*/}
-      <button
-          onClick={goToLogin}
-      >
-        Login With browser
-      </button>
-      {/*<button*/}
-      {/*    onClick={openIframe}*/}
-      {/*>*/}
-      {/*  Open iframe*/}
-      {/*</button>*/}
-      <h1>This is react component</h1>
-      {/*<img src={logo} />*/}
-      {/*<h2>Rectangle Creator</h2>*/}
-      {/*<p>*/}
-      {/*  Count: <input ref={countRef} />*/}
-      {/*</p>*/}
-      {/*<button id="create" onClick={onCreate}>*/}
-      {/*  Create*/}
-      {/*</button>*/}
-      {/*<button onClick={onCancel}>Cancel</button>*/}
+      <button onClick={goToLogin}>Login With browser</button>
+      {isLoading && <h2>Loading...</h2>}
     </div>
   );
 }
