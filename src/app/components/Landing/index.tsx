@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { getReadWriteKey, getUserDetails } from '../services/auth';
-import { REDIRECT_URL } from '../constants/global';
-import { EVENT_TYPE } from '../constants/event';
+import { EVENT_TYPE } from '../../constants/event';
+import { getReadWriteKey, getUserDetails } from '../../services/auth';
+import { REDIRECT_URL } from '../../constants/global';
 
-import '../styles/ui.css';
-
-function App() {
+export const Landing = () => {
   const [userDetails, setUserDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     parent.postMessage({ pluginMessage: { type: EVENT_TYPE.GET_USER_FROM_LOCAL_STORAGE } }, '*');
+
     window.onmessage = (event) => {
       const { type, data } = event.data.pluginMessage;
       if (type === EVENT_TYPE.GET_USER_FROM_LOCAL_STORAGE) {
@@ -48,13 +47,10 @@ function App() {
       </>
     );
   }
-
   return (
-    <div>
+    <>
       <button onClick={goToLogin}>Login With browser</button>
       {isLoading && <h2>Loading...</h2>}
-    </div>
+    </>
   );
-}
-
-export default App;
+};
